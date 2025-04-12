@@ -1,0 +1,22 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Vim / editor swap files
+*.swp
+
+# Personal work-in-progress directories
+sketches/
+temp/
+
+# SQLite database (optional - ignore if it's generated locally)
+# I want to backup the databae for now.
+# cocktail_robot.db
+
+# VS Code settings (optional)
+.vscode/
+
+# Env files (optional)
+.env
+
