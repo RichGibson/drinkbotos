@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Database Tables</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 2rem;
+      background-color: #f8f9fa;
+    }
+    h1 {
+      color: #333;
+    }
+    .table-block {
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      text-align: left;
+    }
+    th {
+      background-color: #eee;
+    }
+  </style>
+</head>
+<body>
+  <h1>Database Tables: cocktail_robot.db</h1>
+  {% for table in tables %}
+    <div class="table-block">
+      <h2><a href="/show_table/{{ table.name }}">{{ table.name }}</a></h2>
+      <h3>Schema</h3>
+      <table>
+        <tr><th>Column ID</th><th>Name</th><th>Type</th><th>Not Null</th><th>Default</th><th>PK</th></tr>
+        {% for col in table.schema %}
+        <tr>
+          <td>{{ col[0] }}</td>
+          <td>{{ col[1] }}</td>
+          <td>{{ col[2] }}</td>
+          <td>{{ col[3] }}</td>
+          <td>{{ col[4] }}</td>
+          <td>{{ col[5] }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+
+      <h3>Sample Data</h3>
+      <table>
+        {% if table.rows and table.rows[0] %}
+            <tr>
+                {% for col in table.schema %}
+                <th>{{col[1]}}</th>
+                {% endfor %}
+            </tr>
+        {% endif %}
+        {% for row in table.rows %}
+        <tr>
+          {% for cell in row %}<td>{{ cell }}</td>{% endfor %}
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
+  {% endfor %}
+
+<h2>Recipes</h2>
+  {% for row in recipes %}
+    <table> 
+        <tr>{{row}}</tr> 
+    </table> 
+  {% endfor %}
+
+<h2>Recipes</h2>
+
+{% for cocktail_name, cocktail_data in recipes.items() %}
+  <h3>{{ cocktail_name }}</h3>
+  <p>{{ cocktail_data.description }}</p>
+
+  <table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Ingredient</th>
+        <th>Quantity</th>
+        <th>Unit</th>
+        <th>Note</th>
+        <th>Types</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ing in cocktail_data.ingredients %}
+        <tr>
+          <td>{{ ing.name }}</td>
+          <td>{{ ing.quantity }}</td>
+          <td>{{ ing.unit }}</td>
+          <td>{{ ing.note or "" }}</td>
+          <td>{{ ing.types | join(", ") }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <br>
+{% endfor %}
+
+</body>
+</html>

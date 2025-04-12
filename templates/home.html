@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to DrinkbotOS</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    header {
+      background-color: #333;
+      color: white;
+      padding: 1rem;
+    }
+    .tagline {
+      font-size: 1.2rem;
+      color: #ccc;
+    }
+    .main-nav button {
+      margin: 1rem;
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .main-nav button:hover {
+      background: #0056b3;
+    }
+    .featured {
+      margin: 2rem auto;
+      max-width: 800px;
+    }
+    .cocktail-grid {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .cocktail-tile {
+      background: white;
+      border: 1px solid #ccc;
+      padding: 1rem;
+      border-radius: 8px;
+      width: 150px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    footer.status {
+      margin-top: 3rem;
+      padding: 1rem;
+      background: #eee;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="home-screen">
+    <header>
+      <h1>Welcome to DrinkbotOS</h1>
+      <p class="tagline">Cocktail robotics made simple.</p>
+    </header>
+
+    <nav class="main-nav">
+      <button onclick="location.href='/cocktails'">Start Pouring 🍹</button>
+      <button onclick="location.href='/dashboard'">System Dashboard 🛠️</button>
+    </nav>
+
+    <section class="featured">
+      <h2>Featured Cocktails</h2>
+      <div class="cocktail-grid">
+        <div class="cocktail-tile">Margarita</div>
+        <div class="cocktail-tile">Negroni</div>
+        <div class="cocktail-tile">Cosmopolitan</div>
+        <div class="cocktail-tile">Old Fashioned</div>
+        <div class="cocktail-tile">Mojito</div>
+      </div>
+    </section>
+
+    <footer class="status">
+      ✅ System Ready &nbsp; | &nbsp; 🧪 4 Ingredients Loaded
+    </footer>
+  </div>
+</body>
+</html>

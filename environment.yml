@@ -1,0 +1,11 @@
+name: drinkbotos
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.12
+  - flask
+  - python-dotenv  # optional, for env config
+  - pip
+  - pip:
+      - waitress  # for running in production if needed
