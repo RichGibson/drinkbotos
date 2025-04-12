@@ -36,7 +36,7 @@
   </style>
 </head>
 <body>
-  <h1>Database Tables: cocktail_robot.db</h1>
+  <h1>Recipes and Tables: cocktail_robot.db</h1>
   {% for table in tables %}
     <div class="table-block">
       <h2><a href="/show_table/{{ table.name }}">{{ table.name }}</a></h2>
@@ -71,13 +71,6 @@
         {% endfor %}
       </table>
     </div>
-  {% endfor %}
-
-<h2>Recipes</h2>
-  {% for row in recipes %}
-    <table> 
-        <tr>{{row}}</tr> 
-    </table> 
   {% endfor %}
 
 <h2>Recipes</h2>
