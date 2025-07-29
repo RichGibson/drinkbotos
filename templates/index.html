@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Home - DrinkbotOS{% endblock %}
+
+{% block content %}
+  <h2>Featured Cocktails</h2>
+  <div class="cocktail-grid">
+
+    {% for cocktail in cocktails %}
+      <div class="cocktail-card">
+        <h3><a href="{{ url_for('cocktail_detail', cocktail_id=cocktail.id, theme=theme) }}">{{ cocktail.name }}</a></h3>
+        <p>{{ cocktail.description }}</p>
+      </div>
+    {% endfor %}
+
+
+
+  </div>
+{% endblock %}

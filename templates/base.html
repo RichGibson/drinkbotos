@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}DrinkbotOS{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='themes/' ~ theme ~ '/style.css') }}">
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background-color: #222;
+      color: white;
+      padding: 0.5rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    nav a {
+      color: white;
+      margin: 0 0.5rem;
+      text-decoration: none;
+    }
+    nav a:hover {
+      text-decoration: underline;
+    }
+    main {
+      padding: 1rem;
+    }
+    footer {
+      text-align: center;
+      font-size: 0.9em;
+      padding: 1rem;
+      margin-top: 2rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div><a href="{{ url_for('index', theme=theme) }}" style="color:white; text-decoration:none;"><strong>DrinkbotOS</strong></a><br><small style="font-size:0.8em; color:#ccc;">Cocktail robotics made simple.</small></div>
+    <nav>
+      <a href="{{ url_for('index', theme=theme) }}">Select Drink</a>
+      <a href="#">Edit Cocktails</a>
+      <a href="#">Edit Ingredients</a>
+      <a href="{{ url_for('show_tables') }}">Admin</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <footer>
+    <p>&copy; 2025 Rich Gibson — Licensed under the <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU General Public License v3.0</a>.</p>
+
+  </footer>
+</body>
+</html>

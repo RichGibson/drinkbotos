@@ -1,0 +1,224 @@
+{% extends  "base.html" %}
+
+{% block title %}{{ cocktail_name }} | Cocktail Robot{% endblock %}
+
+{% block content %}
+<h2>Customize your {{ cocktail_name }}</h2>
+
+<div class="controls">
+  <label for="drink-size">Drink Size:</label>
+  <select id="drink-size" onchange="updateStack()">
+    <option value="0.5">½ Drink</option>
+    <option value="1.0" selected>Normal</option>
+    <option value="2.0">Double</option>
+  </select>
+
+  <label style="margin-left: 1rem;">
+    <input type="checkbox" id="keep-total-volume" onchange="updateStack()">
+    Keep total volume constant
+  </label>
+</div>
+
+<div id="main-layout">
+  <div id="sliders"></div>
+  <div id="output">
+    <div id="total-volume">Total Volume: 0 oz | Estimated ABV: 0%</div>
+    <div id="glass" class="glass"></div>
+    <div id="recipe" class="recipe">
+      <h2>Adjusted Recipe</h2>
+      <table>
+        <thead><tr><th>Ingredient</th><th>Adjusted</th><th>Original</th><th>Unit</th></tr></thead>
+        <tbody id="recipe-body"></tbody>
+      </table>
+    </div>
+    <button id="make-cocktail">Make This Cocktail</button>
+  </div>
+</div>
+
+<div id="ruler"></div>
+
+<pre id="debug-output">{{ ingredients_json }}</pre>
+
+<script>
+const ingredients = {{ ingredients_json | safe }};
+console.log('Loaded ingredients:', ingredients);
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const makeBtn = document.getElementById('make-cocktail');
+  if (makeBtn) {
+    makeBtn.addEventListener('click', () => {
+      alert('🍹 Your cocktail is being mixed!');
+      console.log('Drink mixing triggered!');
+    });
+  }
+
+  const drinkSize = document.getElementById('drink-size');
+  const keepVolume = document.getElementById('keep-total-volume');
+  if (drinkSize) {
+    drinkSize.addEventListener('change', updateStack);
+  }
+  if (keepVolume) {
+    keepVolume.addEventListener('change', updateStack);
+  }
+
+  const seen = new Set();
+  const uniqueIngredients = [];
+  const sliderMap = {};
+
+  ingredients.forEach((ing, i) => {
+    if (!seen.has(ing.name)) {
+      ing._sliderId = i;
+      uniqueIngredients.push(ing);
+      seen.add(ing.name);
+    }
+  });
+
+  const sliderBank = document.createElement('div');
+  sliderBank.style.display = 'none';
+  document.body.appendChild(sliderBank);
+
+  uniqueIngredients.forEach((ing) => {
+    const slider = document.createElement('input');
+    slider.type = 'range';
+    slider.min = 0;
+    slider.max = 5;
+    slider.step = 0.1;
+    slider.value = ing.base;
+    slider.dataset.name = ing.name;
+    slider.addEventListener('input', (e) => {
+      ingredients.forEach(i => { if (i.name === e.target.dataset.name) i.changed = true; else i.changed = false; });
+      updateStack();
+    });
+    sliderBank.appendChild(slider);
+    sliderMap[ing.name] = slider;
+  });
+
+  const types = Array.from(new Set(ingredients.flatMap(i => i.type))).sort();
+console.log('Extracted types:', types);
+  const container = document.getElementById('sliders');
+  const glass = document.getElementById('glass');
+  const recipeBody = document.getElementById('recipe-body');
+  const totalVol = document.getElementById('total-volume');
+
+  types.forEach(type => {
+    const section = document.createElement('div');
+    section.innerHTML = `<h3>${type}</h3>`;
+
+    uniqueIngredients.filter(i => i.type.includes(type)).forEach(ing => {
+      const label = document.createElement('label');
+      label.innerText = `${ing.name} (${ing.unit})`;
+
+      const realSlider = sliderMap[ing.name];
+      const clone = realSlider.cloneNode();
+      clone.value = realSlider.value;
+      clone.dataset.name = realSlider.dataset.name;
+      clone.addEventListener('input', (e) => {
+        ingredients.forEach(i => { if (i.name === e.target.dataset.name) i.changed = true; else i.changed = false; });
+        realSlider.value = e.target.value;
+        updateStack();
+      });
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'ingredient-slider';
+      wrapper.appendChild(label);
+      wrapper.appendChild(clone);
+      section.appendChild(wrapper);
+    });
+
+    container.appendChild(section);
+  });
+
+  function updateStack() {
+    glass.innerHTML = '';
+    recipeBody.innerHTML = '';
+    let total = 0;
+    let active = [];
+
+    uniqueIngredients.forEach(ing => {
+      const val = parseFloat(sliderMap[ing.name].value);
+      if (val > 0) {
+        active.push({ ...ing, value: val });
+        total += val;
+      }
+    });
+
+    const keepTotal = document.getElementById('keep-total-volume').checked;
+    const sizeMultiplier = parseFloat(document.getElementById('drink-size').value || 1.0);
+
+    if (keepTotal && active.length > 1) {
+      const changed = active.find(i => i.changed);
+      if (changed) {
+        const rest = active.filter(i => i !== changed);
+        const baseRest = rest.reduce((sum, i) => sum + i.value, 0);
+        const target = total - changed.value;
+        const scale = baseRest > 0 ? target / baseRest : 0;
+
+        rest.forEach(i => {
+          const newVal = i.value * scale;
+          sliderMap[i.name].value = newVal;
+          i.value = newVal;
+        });
+
+        total = active.reduce((sum, i) => sum + i.value, 0);
+      }
+    }
+
+    total *= sizeMultiplier;
+
+    let totalAlcohol = active.reduce((sum, ing) => {
+      return sum + (ing.abv ? ing.value * (ing.abv / 100) : 0);
+    }, 0);
+
+    totalVol.textContent = `Total Volume: ${total.toFixed(1)} oz | Estimated ABV: ${(total > 0 ? (totalAlcohol / total * 100).toFixed(1) : 0)}%`;
+
+    let bottomOffset = 0;
+    active.forEach((ing, i) => {
+      const layer = document.createElement('div');
+      layer.className = 'layer';
+      const height = (ing.value / total) * 300;
+      layer.style.height = height + 'px';
+      layer.style.bottom = bottomOffset + 'px';
+      layer.style.background = getColor(i);
+      layer.innerText = ing.name;
+      glass.appendChild(layer);
+      bottomOffset += height;
+
+      const row = document.createElement('tr');
+      row.innerHTML = `<td>${ing.name}</td><td>${ing.value.toFixed(1)}</td><td>${ing.base}</td><td>${ing.unit}</td>`;
+      recipeBody.appendChild(row);
+    });
+  }
+
+  function getColor(i) {
+    const colors = ["#e63946", "#f1fa8c", "#2a9d8f", "#457b9d", "#ffb703", "#6a4c93", "#8ecae6"];
+    return colors[i % colors.length];
+  }
+
+  updateStack(); // initial render
+
+  // Add ruler functionality
+  function updateRuler() {
+    const ruler = document.getElementById('ruler');
+    const width = window.innerWidth;
+    ruler.innerHTML = '';
+    
+    // Add marks every 100px
+    for (let i = 0; i <= width; i += 100) {
+      const mark = document.createElement('div');
+      mark.className = 'ruler-mark';
+      mark.style.left = i + 'px';
+      mark.textContent = i;
+      ruler.appendChild(mark);
+    }
+  }
+
+  // Update ruler on window resize
+  window.addEventListener('resize', updateRuler);
+  updateRuler(); // Initial ruler setup
+});
+</script>
+
+{% endblock %}
