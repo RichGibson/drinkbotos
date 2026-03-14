@@ -19,15 +19,17 @@
       align-items: center;
     }
     nav a {
-      color: white;
+      color: #ccc;
       margin: 0 0.5rem;
       text-decoration: none;
+      font-size: 0.85em;
+      letter-spacing: 0.03em;
     }
     nav a:hover {
       text-decoration: underline;
     }
     main {
-      padding: 1rem;
+      padding: 0.25rem 1rem 1rem;
     }
     footer {
       text-align: center;
@@ -40,7 +42,10 @@
 </head>
 <body>
   <header>
-    <div><a href="{{ url_for('index', theme=theme) }}" style="color:white; text-decoration:none;"><strong>DrinkbotOS</strong></a><br><small style="font-size:0.8em; color:#ccc;">Cocktail robotics made simple.</small></div>
+    <div style="display:flex; align-items:center; gap:1rem;">
+      <a href="{{ url_for('index', theme=theme) }}" style="color:white; text-decoration:none;"><strong>DrinkbotOS</strong></a>
+      <small style="font-size:0.8em; color:#ccc;">Cocktail robotics made simple.</small>
+    </div>
     <nav>
       <a href="{{ url_for('index', theme=theme) }}">Select Drink</a>
       <a href="#">Edit Cocktails</a>
@@ -52,7 +57,7 @@
     {% block content %}{% endblock %}
   </main>
   <footer>
-    <p>&copy; 2025 Rich Gibson — Licensed under the <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU General Public License v3.0</a>.</p>
+    <p>&copy; 2026 Rich Gibson — Licensed under the <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank">GNU General Public License v3.0</a>.</p>
 
   </footer>
 </body>

@@ -3,11 +3,66 @@
 {% block title %}{{ cocktail_name }} | Cocktail Robot{% endblock %}
 
 {% block content %}
-<h2>Customize your {{ cocktail_name }}</h2>
+<style>
+  #main-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 8rem;
+  }
+
+  #glass-wrapper {
+    position: relative;
+    width: 231px;
+    height: 324px;
+    margin-top: 1.4rem;
+  }
+
+  #glass {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    -webkit-mask-image: url('/static/images/coupe_glass_bowl_mask.svg');
+    -webkit-mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-image: url('/static/images/coupe_glass_bowl_mask.svg');
+    mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+  }
+
+  .ingredient-slider {
+    margin-bottom: 0.6rem;
+  }
+
+  .layer {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #fff;
+    text-shadow: 0 0 3px rgba(0,0,0,0.6);
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  #glass-overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+</style>
+
+<h3 style="margin-top: 0; margin-bottom: 0.75rem;">Customize your {{ cocktail_name }}</h3>
 
 <div class="controls">
   <label for="drink-size">Drink Size:</label>
   <select id="drink-size" onchange="updateStack()">
+    <option value="taster">Taster (1 oz)</option>
     <option value="0.5">½ Drink</option>
     <option value="1.0" selected>Normal</option>
     <option value="2.0">Double</option>
@@ -22,8 +77,11 @@
 <div id="main-layout">
   <div id="sliders"></div>
   <div id="output">
+    <div id="glass-wrapper">
+      <div id="glass" class="glass"></div>
+      <img src="{{ url_for('static', filename='images/coupe_glass.svg') }}" id="glass-overlay" alt="">
+    </div>
     <div id="total-volume">Total Volume: 0 oz | Estimated ABV: 0%</div>
-    <div id="glass" class="glass"></div>
     <div id="recipe" class="recipe">
       <h2>Adjusted Recipe</h2>
       <table>
@@ -35,7 +93,7 @@
   </div>
 </div>
 
-<div id="ruler"></div>
+<!-- div id="ruler"></div -->
 
 <pre id="debug-output">{{ ingredients_json }}</pre>
 
@@ -60,8 +118,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (drinkSize) {
     drinkSize.addEventListener('change', updateStack);
   }
+  let lockedTotal = null;
   if (keepVolume) {
-    keepVolume.addEventListener('change', updateStack);
+    keepVolume.addEventListener('change', () => {
+      if (keepVolume.checked) {
+        lockedTotal = uniqueIngredients.reduce((sum, ing) => sum + parseFloat(sliderMap[ing.name].value), 0);
+      }
+      updateStack();
+    });
   }
 
   const seen = new Set();
@@ -110,6 +174,7 @@ console.log('Extracted types:', types);
     uniqueIngredients.filter(i => i.type.includes(type)).forEach(ing => {
       const label = document.createElement('label');
       label.innerText = `${ing.name} (${ing.unit})`;
+      label.dataset.name = ing.name;
 
       const realSlider = sliderMap[ing.name];
       const clone = realSlider.cloneNode();
@@ -146,39 +211,53 @@ console.log('Extracted types:', types);
     });
 
     const keepTotal = document.getElementById('keep-total-volume').checked;
-    const sizeMultiplier = parseFloat(document.getElementById('drink-size').value || 1.0);
+    const drinkSizeVal = document.getElementById('drink-size').value;
+    const sizeMultiplier = drinkSizeVal === 'taster' ? (total > 0 ? 1 / total : 1) : parseFloat(drinkSizeVal);
 
-    if (keepTotal && active.length > 1) {
+    if (keepTotal && lockedTotal !== null && active.length > 1) {
       const changed = active.find(i => i.changed);
       if (changed) {
         const rest = active.filter(i => i !== changed);
-        const baseRest = rest.reduce((sum, i) => sum + i.value, 0);
-        const target = total - changed.value;
-        const scale = baseRest > 0 ? target / baseRest : 0;
+        const restTarget = lockedTotal - changed.value;
+        const restCurrent = rest.reduce((sum, i) => sum + i.value, 0);
+        const scale = restCurrent > 0 ? restTarget / restCurrent : 0;
 
         rest.forEach(i => {
-          const newVal = i.value * scale;
-          sliderMap[i.name].value = newVal;
+          const newVal = Math.max(0, i.value * scale);
+          // Update master slider and all visible clones
+          document.querySelectorAll(`input[type=range][data-name="${i.name}"]`).forEach(s => s.value = newVal);
           i.value = newVal;
         });
 
-        total = active.reduce((sum, i) => sum + i.value, 0);
+        total = lockedTotal;
       }
     }
 
+    const unscaledTotal = total;
     total *= sizeMultiplier;
 
     let totalAlcohol = active.reduce((sum, ing) => {
       return sum + (ing.abv ? ing.value * (ing.abv / 100) : 0);
     }, 0);
 
-    totalVol.textContent = `Total Volume: ${total.toFixed(1)} oz | Estimated ABV: ${(total > 0 ? (totalAlcohol / total * 100).toFixed(1) : 0)}%`;
+    totalVol.textContent = `Total Volume: ${total.toFixed(1)} oz | Estimated ABV: ${(unscaledTotal > 0 ? (totalAlcohol / unscaledTotal * 100).toFixed(1) : 0)}%`;
 
-    let bottomOffset = 0;
+    // Reset all labels to default color
+    document.querySelectorAll('label[data-name]').forEach(el => {
+      el.style.color = '';
+    });
+
+    // Bowl occupies the top 31% of the SVG; layers must fill from bowl bottom upward
+    const bowlFraction = 0.31;
+    const bowlHeight = glass.offsetHeight * bowlFraction;
+    const bowlBottomOffset = glass.offsetHeight * (1 - bowlFraction);
+    const fillHeight = Math.min(bowlHeight, bowlHeight * sizeMultiplier);
+
+    let bottomOffset = bowlBottomOffset;
     active.forEach((ing, i) => {
       const layer = document.createElement('div');
       layer.className = 'layer';
-      const height = (ing.value / total) * 300;
+      const height = (ing.value / unscaledTotal) * fillHeight;
       layer.style.height = height + 'px';
       layer.style.bottom = bottomOffset + 'px';
       layer.style.background = getColor(i);
@@ -186,14 +265,39 @@ console.log('Extracted types:', types);
       glass.appendChild(layer);
       bottomOffset += height;
 
+      // Color all matching labels (ingredient may appear in multiple sections)
+      document.querySelectorAll(`label[data-name="${ing.name}"]`).forEach(lbl => {
+        lbl.style.color = getLabelColor(i);
+      });
+
       const row = document.createElement('tr');
-      row.innerHTML = `<td>${ing.name}</td><td>${ing.value.toFixed(1)}</td><td>${ing.base}</td><td>${ing.unit}</td>`;
+      row.innerHTML = `<td>${ing.name}</td><td>${(ing.value * sizeMultiplier).toFixed(1)}</td><td>${(ing.base * sizeMultiplier).toFixed(1)}</td><td>${ing.unit}</td>`;
       recipeBody.appendChild(row);
     });
+
+    // Concave meniscus on the topmost layer
+    if (active.length > 0) {
+      const topLayer = glass.lastElementChild;
+      const meniscusSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      meniscusSvg.setAttribute('viewBox', '0 0 100 16');
+      meniscusSvg.setAttribute('preserveAspectRatio', 'none');
+      meniscusSvg.style.cssText = 'position:absolute; bottom:100%; left:0; width:100%; height:16px;';
+      const meniscusPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      // Concave surface: high at edges, dips down in the center
+      meniscusPath.setAttribute('d', 'M 0,0 C 35,0 35,16 50,16 C 65,16 65,0 100,0 L 100,16 L 0,16 Z');
+      meniscusPath.setAttribute('fill', getColor(active.length - 1));
+      meniscusSvg.appendChild(meniscusPath);
+      topLayer.appendChild(meniscusSvg);
+    }
   }
 
   function getColor(i) {
     const colors = ["#e63946", "#f1fa8c", "#2a9d8f", "#457b9d", "#ffb703", "#6a4c93", "#8ecae6"];
+    return colors[i % colors.length];
+  }
+
+  function getLabelColor(i) {
+    const colors = ["#c0202d", "#8a6f00", "#1e7a6e", "#2e5f80", "#c98a00", "#4e3870", "#5ba3c9"];
     return colors[i % colors.length];
   }
 
